@@ -1,11 +1,25 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { getSessionLogs } from "@/lib/sheets";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import type { SessionLog } from "@/lib/sheets";
 
-export const dynamic = "force-dynamic";
+export default function SessionsPage() {
+  const [sessions, setSessions] = useState<SessionLog[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export default async function SessionsPage() {
-  const sessions = await getSessionLogs().catch(() => []);
+  useEffect(() => {
+    getSessionLogs()
+      .then(setSessions)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return <div className="p-8 text-gray-400 text-sm">読み込み中...</div>;
+  }
 
   return (
     <div className="p-8">

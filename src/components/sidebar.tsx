@@ -2,7 +2,8 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, ListTodo, Bot } from "lucide-react";
+import { LayoutDashboard, ListTodo, Bot, LogOut } from "lucide-react";
+import { useAuth } from "@/components/auth-provider";
 
 const NAV = [
   { href: "/", label: "ダッシュボード", icon: LayoutDashboard },
@@ -12,6 +13,7 @@ const NAV = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user, signOut } = useAuth();
 
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-screen shrink-0 sticky top-0">
@@ -22,7 +24,7 @@ export function Sidebar() {
           </div>
           <div>
             <h1 className="font-semibold text-gray-900 text-sm">Work Dashboard</h1>
-            <p className="text-xs text-gray-500">Google Sheets連携</p>
+            <p className="text-xs text-gray-500">タスク・プロジェクト管理</p>
           </div>
         </div>
       </div>
@@ -52,7 +54,26 @@ export function Sidebar() {
       </nav>
 
       <div className="p-4 border-t border-gray-200">
-        <p className="text-xs text-gray-400">Synced from Sheets</p>
+        {user && (
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">
+              {user.email?.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-gray-900 truncate">
+                {user.user_metadata?.full_name || user.email?.split("@")[0]}
+              </p>
+              <p className="text-[10px] text-gray-400 truncate">{user.email}</p>
+            </div>
+            <button
+              onClick={signOut}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+              title="ログアウト"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );

@@ -36,22 +36,16 @@ export interface DailySnapshot {
 }
 
 export async function getTasks(): Promise<Task[]> {
-  const res = await fetch(`${API_BASE}/api/tasks`, {
-    next: { revalidate: 300 },
-  });
+  const res = await fetch(`${API_BASE}/api/tasks`, { cache: "no-store" });
   return res.json();
 }
 
 export async function getSessionLogs(): Promise<SessionLog[]> {
-  const res = await fetch(`${API_BASE}/api/sessions`, {
-    next: { revalidate: 300 },
-  });
+  const res = await fetch(`${API_BASE}/api/sessions`, { cache: "no-store" });
   return res.json();
 }
 
 export async function getSnapshots(): Promise<DailySnapshot[]> {
-  const res = await fetch(`${API_BASE}/api/snapshots`, {
-    next: { revalidate: 300 },
-  });
+  const res = await fetch(`${API_BASE}/api/snapshots`, { cache: "no-store" });
   return res.json();
 }
