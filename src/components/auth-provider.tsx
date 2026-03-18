@@ -44,6 +44,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const supabase = getSupabase();
 
+    console.log("URL:", window.location.href);
+    console.log("Hash:", window.location.hash ? "has hash (" + window.location.hash.length + " chars)" : "no hash");
+
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       console.log("getSession:", session?.user?.email || "no session", error || "");
       setUser(session?.user ?? null);
