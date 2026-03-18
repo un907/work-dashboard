@@ -1,26 +1,53 @@
-import { google } from "googleapis";
-
 const SPREADSHEET_ID = "1bDfRZ-j4zdYJmnzHTC69grtNLlSfFnf4DxemRPL6KwY";
-
-async function getAuth() {
-  const auth = new google.auth.GoogleAuth({
-    credentials: {
-      client_email: process.env.GOOGLE_CLIENT_EMAIL,
-      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-    },
-    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
-  });
-  return auth;
-}
+const BASE_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
 
 async function readSheet(sheetName: string): Promise<string[][]> {
-  const auth = await getAuth();
-  const sheets = google.sheets({ version: "v4", auth });
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${sheetName}!A:Z`,
+  const res = await fetch(BASE_URL + encodeURIComponent(sheetName), {
+    next: { revalidate: 300 },
   });
-  return res.data.values || [];
+  const csv = await res.text();
+  return parseCSV(csv);
+}
+
+function parseCSV(csv: string): string[][] {
+  const rows: string[][] = [];
+  let current = "";
+  let inQuotes = false;
+  let row: string[] = [];
+
+  for (let i = 0; i < csv.length; i++) {
+    const ch = csv[i];
+    if (inQuotes) {
+      if (ch === '"' && csv[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ",") {
+        row.push(current);
+        current = "";
+      } else if (ch === "\n" || (ch === "\r" && csv[i + 1] === "\n")) {
+        row.push(current);
+        current = "";
+        if (row.some((c) => c)) rows.push(row);
+        row = [];
+        if (ch === "\r") i++;
+      } else {
+        current += ch;
+      }
+    }
+  }
+  if (current || row.length) {
+    row.push(current);
+    if (row.some((c) => c)) rows.push(row);
+  }
+  return rows;
 }
 
 function rowsToObjects(rows: string[][]): Record<string, string>[] {
