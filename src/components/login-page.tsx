@@ -6,17 +6,6 @@ import { LayoutDashboard } from "lucide-react";
 export function LoginPage() {
   const { signInWithGoogle } = useAuth();
 
-  const handleLogin = async () => {
-    console.log("Login clicked");
-    console.log("SUPABASE_URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
-    try {
-      await signInWithGoogle();
-      console.log("signInWithGoogle completed");
-    } catch (e) {
-      console.error("Login error:", e);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 max-w-sm w-full text-center">
@@ -30,7 +19,7 @@ export function LoginPage() {
           Googleアカウントでログイン
         </p>
         <button
-          onClick={handleLogin}
+          onClick={signInWithGoogle}
           className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
