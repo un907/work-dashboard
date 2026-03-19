@@ -2,13 +2,14 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, ListTodo, Bot, LogOut } from "lucide-react";
+import { LayoutDashboard, ListTodo, Bot, FileText, LogOut } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 
 const NAV = [
   { href: "/", label: "ダッシュボード", icon: LayoutDashboard },
   { href: "/tasks", label: "タスク管理", icon: ListTodo },
   { href: "/sessions", label: "セッション", icon: Bot },
+  { href: "/docs", label: "ドキュメント", icon: FileText },
 ];
 
 export function Sidebar() {
