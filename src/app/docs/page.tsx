@@ -54,6 +54,10 @@ export default function DocsPage() {
   const [editContent, setEditContent] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // New doc state
+  const [creatingDoc, setCreatingDoc] = useState(false);
+  const [newDocTitle, setNewDocTitle] = useState("");
+
   // Memo state
   const [memos, setMemos] = useState<Memo[]>([]);
   const [newMemo, setNewMemo] = useState("");
@@ -162,6 +166,27 @@ export default function DocsPage() {
   const cancelEditing = () => {
     setEditing(false);
     setEditContent("");
+  };
+
+  const createNewDoc = async () => {
+    if (!newDocTitle.trim() || !user) return;
+    const slug = newDocTitle.trim().toLowerCase().replace(/[^a-z0-9\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf]/g, "-").replace(/-+/g, "-");
+    const sb = getSupabase();
+    const content = `# ${newDocTitle.trim()}\n\n`;
+    await sb.from("doc_contents").upsert({
+      doc_slug: slug,
+      content,
+      updated_by: user.email,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "doc_slug" });
+    setCreatingDoc(false);
+    setNewDocTitle("");
+    // 新規ドキュメントを選択状態にする
+    setSelected({ slug, title: newDocTitle.trim(), content });
+    setEditing(true);
+    setEditContent(content);
+    // ドキュメント一覧にも追加
+    setDocs((prev) => [...prev, { slug, title: newDocTitle.trim(), size: content.length }]);
   };
 
   const addMemo = async (anchorText?: string) => {
@@ -337,6 +362,30 @@ export default function DocsPage() {
                 </p>
               </button>
             ))}
+            {/* 新規ドキュメント追加 */}
+            {creatingDoc ? (
+              <div className="px-2 py-2">
+                <input
+                  autoFocus
+                  value={newDocTitle}
+                  onChange={(e) => setNewDocTitle(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") createNewDoc(); if (e.key === "Escape") setCreatingDoc(false); }}
+                  placeholder="ドキュメント名..."
+                  className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+                <div className="flex gap-1 mt-1">
+                  <button onClick={createNewDoc} className="text-[10px] px-2 py-0.5 bg-blue-500 text-white rounded hover:bg-blue-600">作成</button>
+                  <button onClick={() => setCreatingDoc(false)} className="text-[10px] px-2 py-0.5 bg-gray-200 text-gray-600 rounded hover:bg-gray-300">取消</button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setCreatingDoc(true)}
+                className="w-full text-left px-3 py-2 rounded-lg text-xs text-gray-400 hover:bg-gray-50 hover:text-blue-600 transition-colors"
+              >
+                + 新規ドキュメント
+              </button>
+            )}
           </div>
         </div>
 
