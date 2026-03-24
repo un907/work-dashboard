@@ -7,9 +7,33 @@ export interface Task {
   text: string;
   status: string;
   priority: string;
+  project?: string | null;
   dueDate: string;
   source: string;
   assignee: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  gitUrl?: string;
+  notionTag?: string;
+  status: "active" | "planning" | "archived";
+  icon: string;
+  color: string;
+  links: { id: string; title: string; url: string; icon: string; type: string }[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Diagram {
+  id: string;
+  projectId: string;
+  title: string;
+  mermaidCode: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -61,7 +85,7 @@ export async function getSnapshots(): Promise<DailySnapshot[]> {
 
 // === Write (Bearer token required) ===
 
-export async function createTask(task: { title: string; text?: string; priority?: string; dueDate?: string }): Promise<Task> {
+export async function createTask(task: { title: string; text?: string; priority?: string; dueDate?: string; project?: string }): Promise<Task> {
   const res = await fetch(`${API_BASE}/api/tasks`, {
     method: "POST",
     headers: authHeaders(),
@@ -88,4 +112,83 @@ export async function deleteTask(id: string): Promise<void> {
     body: JSON.stringify({ id }),
   });
   if (!res.ok) throw new Error("タスク削除に失敗しました");
+}
+
+// === Projects ===
+
+export async function getProjects(): Promise<Project[]> {
+  const res = await fetch(`${API_BASE}/api/projects`, { cache: "no-store" });
+  return res.json();
+}
+
+export async function getProject(id: string): Promise<Project> {
+  const res = await fetch(`${API_BASE}/api/projects?id=${id}`, { cache: "no-store" });
+  if (!res.ok) throw new Error("プロジェクト取得に失敗しました");
+  return res.json();
+}
+
+export async function createProject(project: { name: string; description?: string; gitUrl?: string; notionTag?: string; status?: string; icon?: string; color?: string }): Promise<Project> {
+  const res = await fetch(`${API_BASE}/api/projects`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(project),
+  });
+  if (!res.ok) throw new Error("プロジェクト作成に失敗しました");
+  return res.json();
+}
+
+export async function updateProject(id: string, updates: Partial<Project>): Promise<Project> {
+  const res = await fetch(`${API_BASE}/api/projects`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify({ id, ...updates }),
+  });
+  if (!res.ok) throw new Error("プロジェクト更新に失敗しました");
+  return res.json();
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/projects`, {
+    method: "DELETE",
+    headers: authHeaders(),
+    body: JSON.stringify({ id }),
+  });
+  if (!res.ok) throw new Error("プロジェクト削除に失敗しました");
+}
+
+// === Diagrams ===
+
+export async function getDiagrams(projectId?: string): Promise<Diagram[]> {
+  const url = projectId ? `${API_BASE}/api/diagrams?projectId=${projectId}` : `${API_BASE}/api/diagrams`;
+  const res = await fetch(url, { cache: "no-store" });
+  return res.json();
+}
+
+export async function createDiagram(diagram: { projectId: string; title: string; mermaidCode?: string }): Promise<Diagram> {
+  const res = await fetch(`${API_BASE}/api/diagrams`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(diagram),
+  });
+  if (!res.ok) throw new Error("ダイアグラム作成に失敗しました");
+  return res.json();
+}
+
+export async function updateDiagram(id: string, updates: Partial<Diagram>): Promise<Diagram> {
+  const res = await fetch(`${API_BASE}/api/diagrams`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify({ id, ...updates }),
+  });
+  if (!res.ok) throw new Error("ダイアグラム更新に失敗しました");
+  return res.json();
+}
+
+export async function deleteDiagram(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/diagrams`, {
+    method: "DELETE",
+    headers: authHeaders(),
+    body: JSON.stringify({ id }),
+  });
+  if (!res.ok) throw new Error("ダイアグラム削除に失敗しました");
 }
