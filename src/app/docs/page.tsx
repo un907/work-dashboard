@@ -278,6 +278,10 @@ export default function DocsPage() {
                           return <code className="bg-gray-100 text-gray-800 text-xs px-1.5 py-0.5 rounded font-mono">{children}</code>;
                         },
                         pre: ({ children }) => <pre className="mb-3">{children}</pre>,
+                        table: ({ children }) => <div className="overflow-x-auto mb-4"><table className="w-full text-sm border-collapse">{children}</table></div>,
+                        thead: ({ children }) => <thead className="bg-gray-50">{children}</thead>,
+                        th: ({ children }) => <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600 border-b border-gray-200">{children}</th>,
+                        td: ({ children }) => <td className="px-3 py-2 text-sm text-gray-700 border-b border-gray-100">{children}</td>,
                         hr: () => <hr className="my-6 border-gray-200" />,
                         blockquote: ({ children }) => <blockquote className="border-l-3 border-blue-300 pl-4 my-3 text-sm text-gray-600 italic">{children}</blockquote>,
                       }}
