@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Markdown from "react-markdown";
+import { FileText } from "lucide-react";
 
 interface DocMeta {
   id: string;
@@ -52,12 +53,11 @@ export function DocumentsTab({ notionTag }: Props) {
   const [newDocCategory, setNewDocCategory] = useState(notionTag || "メモ");
 
   const loadDocs = useCallback(async () => {
+    if (!notionTag) return [];
     try {
       const r = await fetch("/api/docs");
       let data: DocMeta[] = await r.json();
-      if (notionTag) {
-        data = data.filter(d => d.category === notionTag);
-      }
+      data = data.filter(d => d.category === notionTag);
       setDocs(data);
       return data;
     } catch {
@@ -66,10 +66,11 @@ export function DocumentsTab({ notionTag }: Props) {
   }, [notionTag]);
 
   useEffect(() => {
+    if (!notionTag) { setLoading(false); return; }
     loadDocs().then((data) => {
       if (data.length > 0) loadDoc(data[0].id);
     }).finally(() => setLoading(false));
-  }, [loadDocs]);
+  }, [loadDocs, notionTag]);
 
   const loadDoc = async (id: string) => {
     try {
@@ -136,11 +137,25 @@ export function DocumentsTab({ notionTag }: Props) {
 
   if (loading) return <div className="text-gray-400 text-sm py-8">読み込み中...</div>;
 
+  // notionTag未設定時の案内
+  if (!notionTag) {
+    return (
+      <div className="text-center py-16">
+        <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
+          <FileText className="w-6 h-6 text-gray-300" />
+        </div>
+        <p className="text-sm font-medium text-gray-500 mb-1">Notionタグが未設定です</p>
+        <p className="text-xs text-gray-400 mb-1">概要タブで「Notionタグ」を設定すると、</p>
+        <p className="text-xs text-gray-400">該当カテゴリのドキュメントがここに表示されます</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex gap-5">
-      {/* Sidebar */}
-      <div className="w-56 shrink-0">
-        <div className="flex items-center justify-between mb-2 px-2">
+    <div className="flex gap-5 h-[calc(100vh-280px)]">
+      {/* Sidebar - sticky, independent scroll */}
+      <div className="w-56 shrink-0 overflow-y-auto">
+        <div className="flex items-center justify-between mb-2 px-2 sticky top-0 bg-white pb-1 z-10">
           <p className="text-xs font-medium text-gray-400">ドキュメント</p>
           <span className="text-[10px] text-gray-400">{docs.length}件</span>
         </div>
@@ -188,34 +203,38 @@ export function DocumentsTab({ notionTag }: Props) {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
+      {/* Content - independent scroll */}
+      <div className="flex-1 min-w-0 flex flex-col">
         {selected ? (
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  {selected.category && <Badge className={`text-xs ${CATEGORY_COLORS[selected.category] || ""}`}>{selected.category}</Badge>}
-                  {selected.status && <Badge className={`text-xs ${STATUS_COLORS[selected.status] || ""}`}>{selected.status}</Badge>}
+          <Card className="flex flex-col flex-1 overflow-hidden">
+            {/* Header - fixed */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-100 shrink-0">
+              <div className="flex items-center gap-2">
+                {selected.category && <Badge className={`text-xs ${CATEGORY_COLORS[selected.category] || ""}`}>{selected.category}</Badge>}
+                {selected.status && <Badge className={`text-xs ${STATUS_COLORS[selected.status] || ""}`}>{selected.status}</Badge>}
+              </div>
+              {!editing ? (
+                <Button onClick={() => { setEditContent(selected.content); setEditing(true); }} variant="outline" size="sm" className="text-xs">編集</Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button onClick={saveDoc} size="sm" className="text-xs" disabled={saving}>{saving ? "保存中..." : "保存"}</Button>
+                  <Button onClick={() => setEditing(false)} variant="outline" size="sm" className="text-xs">キャンセル</Button>
                 </div>
-                {!editing ? (
-                  <Button onClick={() => { setEditContent(selected.content); setEditing(true); }} variant="outline" size="sm" className="text-xs">編集</Button>
+              )}
+            </div>
+            {/* Body - scrollable */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-6">
+                {editing ? (
+                  <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)}
+                    className="w-full h-[50vh] text-sm font-mono border border-gray-200 rounded-lg p-4 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50" />
                 ) : (
-                  <div className="flex gap-2">
-                    <Button onClick={saveDoc} size="sm" className="text-xs" disabled={saving}>{saving ? "保存中..." : "保存"}</Button>
-                    <Button onClick={() => setEditing(false)} variant="outline" size="sm" className="text-xs">キャンセル</Button>
-                  </div>
+                  <article className="prose prose-sm prose-gray max-w-none">
+                    <Markdown>{selected.content}</Markdown>
+                  </article>
                 )}
               </div>
-              {editing ? (
-                <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)}
-                  className="w-full h-[50vh] text-sm font-mono border border-gray-200 rounded-lg p-4 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50" />
-              ) : (
-                <article className="prose prose-sm prose-gray max-w-none">
-                  <Markdown>{selected.content}</Markdown>
-                </article>
-              )}
-            </CardContent>
+            </div>
           </Card>
         ) : (
           <div className="text-center py-12 text-gray-400 text-sm">
