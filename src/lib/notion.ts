@@ -28,6 +28,7 @@ export interface NotionDoc {
   id: string;
   title: string;
   category: string;
+  project: string;
   status: string;
   lastEdited: string;
 }
@@ -50,14 +51,18 @@ function extractSelect(page: any, key: string): string {
 }
 
 /**
- * ドキュメント一覧を取得
+ * ドキュメント一覧を取得（プロジェクトフィルタ対応）
  */
-export async function listDocs(): Promise<NotionDoc[]> {
+export async function listDocs(project?: string): Promise<NotionDoc[]> {
+  const filters: any[] = [
+    { property: "ステータス", select: { does_not_equal: "アーカイブ" } },
+  ];
+  if (project) {
+    filters.push({ property: "プロジェクト", select: { equals: project } });
+  }
+
   const data = await notionApi(`databases/${NOTION_DB_ID}/query`, "POST", {
-    filter: {
-      property: "ステータス",
-      select: { does_not_equal: "アーカイブ" },
-    },
+    filter: filters.length === 1 ? filters[0] : { and: filters },
     sorts: [{ timestamp: "last_edited_time", direction: "descending" }],
   });
 
@@ -65,6 +70,7 @@ export async function listDocs(): Promise<NotionDoc[]> {
     id: page.id,
     title: extractTitle(page),
     category: extractSelect(page, "カテゴリ"),
+    project: extractSelect(page, "プロジェクト"),
     status: extractSelect(page, "ステータス"),
     lastEdited: page.last_edited_time,
   }));
@@ -115,12 +121,13 @@ export async function getDoc(pageId: string): Promise<NotionDocContent> {
 /**
  * 新規ドキュメント作成
  */
-export async function createDoc(title: string, category?: string): Promise<string> {
+export async function createDoc(title: string, category?: string, project?: string): Promise<string> {
   const page = await notionApi("pages", "POST", {
     parent: { database_id: NOTION_DB_ID },
     properties: {
       "名前": { title: [{ text: { content: title } }] },
       ...(category ? { "カテゴリ": { select: { name: category } } } : {}),
+      ...(project ? { "プロジェクト": { select: { name: project } } } : {}),
       "ステータス": { select: { name: "下書き" } },
     },
     children: [

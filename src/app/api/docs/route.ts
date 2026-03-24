@@ -4,13 +4,14 @@ import { listDocs, getDoc, createDoc, updateDoc, archiveDoc, deleteDoc } from "@
 // GET: 一覧 or 個別取得
 export async function GET(request: NextRequest) {
   const id = request.nextUrl.searchParams.get("id");
+  const project = request.nextUrl.searchParams.get("project");
 
   try {
     if (id) {
       const doc = await getDoc(id);
       return NextResponse.json(doc);
     }
-    const docs = await listDocs();
+    const docs = await listDocs(project || undefined);
     return NextResponse.json(docs);
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
@@ -20,9 +21,9 @@ export async function GET(request: NextRequest) {
 // POST: 新規作成
 export async function POST(request: NextRequest) {
   try {
-    const { title, category } = await request.json();
+    const { title, category, project } = await request.json();
     if (!title) return NextResponse.json({ error: "title required" }, { status: 400 });
-    const id = await createDoc(title, category);
+    const id = await createDoc(title, category, project);
     return NextResponse.json({ id });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });

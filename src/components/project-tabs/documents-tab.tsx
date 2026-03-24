@@ -5,12 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Markdown from "react-markdown";
-import { FileText } from "lucide-react";
 
 interface DocMeta {
   id: string;
   title: string;
   category: string;
+  project: string;
   status: string;
   lastEdited: string;
 }
@@ -38,10 +38,10 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 interface Props {
-  notionTag?: string;
+  projectName: string;
 }
 
-export function DocumentsTab({ notionTag }: Props) {
+export function DocumentsTab({ projectName }: Props) {
   const [docs, setDocs] = useState<DocMeta[]>([]);
   const [selected, setSelected] = useState<DocContent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,27 +50,24 @@ export function DocumentsTab({ notionTag }: Props) {
   const [saving, setSaving] = useState(false);
   const [creatingDoc, setCreatingDoc] = useState(false);
   const [newDocTitle, setNewDocTitle] = useState("");
-  const [newDocCategory, setNewDocCategory] = useState(notionTag || "メモ");
+  const [newDocCategory, setNewDocCategory] = useState("メモ");
 
   const loadDocs = useCallback(async () => {
-    if (!notionTag) return [];
     try {
-      const r = await fetch("/api/docs");
-      let data: DocMeta[] = await r.json();
-      data = data.filter(d => d.category === notionTag);
+      const r = await fetch(`/api/docs?project=${encodeURIComponent(projectName)}`);
+      const data: DocMeta[] = await r.json();
       setDocs(data);
       return data;
     } catch {
       return [];
     }
-  }, [notionTag]);
+  }, [projectName]);
 
   useEffect(() => {
-    if (!notionTag) { setLoading(false); return; }
     loadDocs().then((data) => {
       if (data.length > 0) loadDoc(data[0].id);
     }).finally(() => setLoading(false));
-  }, [loadDocs, notionTag]);
+  }, [loadDocs]);
 
   const loadDoc = async (id: string) => {
     try {
@@ -106,7 +103,11 @@ export function DocumentsTab({ notionTag }: Props) {
       const r = await fetch("/api/docs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newDocTitle.trim(), category: newDocCategory }),
+        body: JSON.stringify({
+          title: newDocTitle.trim(),
+          category: newDocCategory,
+          project: projectName,
+        }),
       });
       const { id } = await r.json();
       setCreatingDoc(false);
@@ -137,23 +138,9 @@ export function DocumentsTab({ notionTag }: Props) {
 
   if (loading) return <div className="text-gray-400 text-sm py-8">読み込み中...</div>;
 
-  // notionTag未設定時の案内
-  if (!notionTag) {
-    return (
-      <div className="text-center py-16">
-        <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
-          <FileText className="w-6 h-6 text-gray-300" />
-        </div>
-        <p className="text-sm font-medium text-gray-500 mb-1">Notionタグが未設定です</p>
-        <p className="text-xs text-gray-400 mb-1">概要タブで「Notionタグ」を設定すると、</p>
-        <p className="text-xs text-gray-400">該当カテゴリのドキュメントがここに表示されます</p>
-      </div>
-    );
-  }
-
   return (
     <div className="flex gap-5 h-[calc(100vh-280px)]">
-      {/* Sidebar - sticky, independent scroll */}
+      {/* Sidebar - independent scroll */}
       <div className="w-56 shrink-0 overflow-y-auto">
         <div className="flex items-center justify-between mb-2 px-2 sticky top-0 bg-white pb-1 z-10">
           <p className="text-xs font-medium text-gray-400">ドキュメント</p>

@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self'",
-              "connect-src 'self' https://*.supabase.co https://rikkeyapp.net",
+              "connect-src 'self' https://*.supabase.co https://rikkeyapp.net https://api.github.com https://api.notion.com",
               "frame-src https://accounts.google.com",
             ].join("; "),
           },
