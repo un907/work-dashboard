@@ -217,7 +217,38 @@ export function DocumentsTab({ projectName }: Props) {
                     className="w-full h-[50vh] text-sm font-mono border border-gray-200 rounded-lg p-4 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50" />
                 ) : (
                   <article className="prose prose-sm prose-gray max-w-none">
-                    <Markdown>{selected.content}</Markdown>
+                    <Markdown
+                      components={{
+                        h1: ({ children }) => <h1 className="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b border-gray-200">{children}</h1>,
+                        h2: ({ children }) => <h2 className="text-lg font-bold text-gray-900 mt-8 mb-3">{children}</h2>,
+                        h3: ({ children }) => <h3 className="text-base font-semibold text-gray-800 mt-6 mb-2">{children}</h3>,
+                        p: ({ children }) => <p className="text-sm text-gray-700 leading-relaxed mb-3">{children}</p>,
+                        ul: ({ children }) => <ul className="text-sm text-gray-700 space-y-1 mb-3 list-disc pl-5">{children}</ul>,
+                        ol: ({ children }) => <ol className="text-sm text-gray-700 space-y-1 mb-3 list-decimal pl-5">{children}</ol>,
+                        li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                        strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                        code: ({ children, className }) => {
+                          if (className?.includes("language-")) {
+                            return <code className="block bg-gray-900 text-gray-100 rounded-lg p-4 text-xs font-mono overflow-x-auto whitespace-pre mb-3">{children}</code>;
+                          }
+                          return <code className="bg-gray-100 text-gray-800 text-xs px-1.5 py-0.5 rounded font-mono">{children}</code>;
+                        },
+                        pre: ({ children }) => <pre className="mb-3">{children}</pre>,
+                        table: ({ children }) => <div className="overflow-x-auto mb-4 rounded-lg border border-gray-200"><table className="w-full text-sm border-collapse">{children}</table></div>,
+                        thead: ({ children }) => <thead className="bg-gray-50">{children}</thead>,
+                        th: ({ children }) => <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600 border-b border-gray-200">{children}</th>,
+                        td: ({ children }) => <td className="px-3 py-2 text-sm text-gray-700 border-b border-gray-100">{children}</td>,
+                        hr: () => <hr className="my-6 border-gray-200" />,
+                        blockquote: ({ children }) => <blockquote className="border-l-3 border-blue-300 bg-blue-50/50 pl-4 pr-3 py-2 my-3 text-sm text-gray-600 italic rounded-r-lg">{children}</blockquote>,
+                        a: ({ children, href }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{children}</a>,
+                        input: ({ checked, ...props }) => (
+                          <input type="checkbox" checked={checked} readOnly className="mr-2 rounded border-gray-300" {...props} />
+                        ),
+                        img: ({ src, alt }) => <img src={src} alt={alt || ""} className="rounded-lg max-w-full my-3 border border-gray-200" />,
+                      }}
+                    >
+                      {selected.content}
+                    </Markdown>
                   </article>
                 )}
               </div>

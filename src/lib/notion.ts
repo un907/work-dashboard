@@ -77,31 +77,91 @@ export async function listDocs(project?: string): Promise<NotionDoc[]> {
 }
 
 /**
- * ブロック → markdown変換
+ * リッチテキスト → markdown（太字・イタリック・コード・リンク対応）
  */
-function blocksToMarkdown(blocks: any[]): string {
-  return blocks.map((block: any) => {
-    const type = block.type;
-    const richText = block[type]?.rich_text?.map((t: any) => t.plain_text).join("") || "";
-
-    switch (type) {
-      case "heading_1": return `# ${richText}`;
-      case "heading_2": return `## ${richText}`;
-      case "heading_3": return `### ${richText}`;
-      case "paragraph": return richText;
-      case "bulleted_list_item": return `- ${richText}`;
-      case "numbered_list_item": return `1. ${richText}`;
-      case "code": return `\`\`\`${block.code?.language || ""}\n${richText}\n\`\`\``;
-      case "quote": return `> ${richText}`;
-      case "divider": return "---";
-      case "to_do": return `- [${block.to_do?.checked ? "x" : " "}] ${richText}`;
-      default: return richText;
-    }
-  }).join("\n\n");
+function richTextToMd(richTexts: any[]): string {
+  if (!richTexts) return "";
+  return richTexts.map((t: any) => {
+    let text = t.plain_text || "";
+    if (t.annotations?.bold) text = `**${text}**`;
+    if (t.annotations?.italic) text = `*${text}*`;
+    if (t.annotations?.code) text = `\`${text}\``;
+    if (t.annotations?.strikethrough) text = `~~${text}~~`;
+    if (t.href) text = `[${text}](${t.href})`;
+    return text;
+  }).join("");
 }
 
 /**
- * ドキュメント内容を取得
+ * ブロック → markdown変換
+ */
+function blocksToMarkdown(blocks: any[]): string {
+  const lines: string[] = [];
+  let inCodeBlock = false;
+
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    const type = block.type;
+    const rt = block[type]?.rich_text;
+    const text = richTextToMd(rt);
+
+    switch (type) {
+      case "heading_1": lines.push("", `# ${text}`, ""); break;
+      case "heading_2": lines.push("", `## ${text}`, ""); break;
+      case "heading_3": lines.push("", `### ${text}`, ""); break;
+      case "paragraph": lines.push(text || ""); break;
+      case "bulleted_list_item": lines.push(`- ${text}`); break;
+      case "numbered_list_item": lines.push(`1. ${text}`); break;
+      case "to_do":
+        lines.push(`- [${block.to_do?.checked ? "x" : " "}] ${text}`);
+        break;
+      case "code":
+        lines.push(`\`\`\`${block.code?.language || ""}`, richTextToMd(block.code?.rich_text) || text, "```");
+        break;
+      case "quote": lines.push(`> ${text}`); break;
+      case "callout":
+        lines.push(`> ${block.callout?.icon?.emoji || ""} ${text}`);
+        break;
+      case "divider": lines.push("", "---", ""); break;
+      case "table": {
+        const tableBlock = block;
+        if (tableBlock.has_children && block._children) {
+          // children are table_row blocks
+          const rows = block._children;
+          for (let r = 0; r < rows.length; r++) {
+            const cells = rows[r].table_row?.cells || [];
+            const row = "| " + cells.map((cell: any[]) => richTextToMd(cell)).join(" | ") + " |";
+            lines.push(row);
+            if (r === 0) {
+              lines.push("| " + cells.map(() => "---").join(" | ") + " |");
+            }
+          }
+        }
+        break;
+      }
+      case "toggle":
+        lines.push(`**${text}**`);
+        break;
+      case "bookmark":
+        lines.push(`[${block.bookmark?.caption?.[0]?.plain_text || block.bookmark?.url || ""}](${block.bookmark?.url || ""})`);
+        break;
+      case "image": {
+        const url = block.image?.file?.url || block.image?.external?.url || "";
+        const cap = block.image?.caption?.[0]?.plain_text || "";
+        if (url) lines.push(`![${cap}](${url})`);
+        break;
+      }
+      default:
+        if (text) lines.push(text);
+        break;
+    }
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * ドキュメント内容を取得（テーブル等の子ブロックも再帰取得）
  */
 export async function getDoc(pageId: string): Promise<NotionDocContent> {
   const [page, blocksData] = await Promise.all([
@@ -109,12 +169,24 @@ export async function getDoc(pageId: string): Promise<NotionDocContent> {
     notionApi(`blocks/${pageId}/children`),
   ]);
 
+  const blocks = blocksData.results || [];
+
+  // テーブル等の子ブロックを取得
+  for (const block of blocks) {
+    if (block.has_children && (block.type === "table" || block.type === "toggle")) {
+      try {
+        const children = await notionApi(`blocks/${block.id}/children`);
+        block._children = children.results || [];
+      } catch {}
+    }
+  }
+
   return {
     id: page.id,
     title: extractTitle(page),
     category: extractSelect(page, "カテゴリ"),
     status: extractSelect(page, "ステータス"),
-    content: blocksToMarkdown(blocksData.results || []),
+    content: blocksToMarkdown(blocks),
   };
 }
 
