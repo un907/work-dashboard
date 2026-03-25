@@ -16,7 +16,7 @@ const STATUS_BADGE: Record<string, string> = {
   "archived": "bg-gray-100 text-gray-500",
 };
 const STATUS_LABELS: Record<string, string> = { "open": "進行中", "done": "完了", "archived": "アーカイブ" };
-const STATUS_ORDER = ["open", "done", "archived"];
+const STATUS_ORDER = ["open", "done"];
 
 const PRIORITY_COLORS: Record<string, string> = { "high": "text-red-500", "normal": "text-yellow-500", "low": "text-gray-400" };
 const PRIORITY_LABELS: Record<string, string> = { "high": "高", "normal": "中", "low": "低" };
