@@ -142,6 +142,95 @@ export async function deleteTaskV2(id: string): Promise<void> {
   if (!res.ok) throw new Error("タスク削除に失敗しました");
 }
 
+// === Projects ===
+
+export interface ProjectV2 {
+  id: string;
+  name: string;
+  description: string | null;
+  git_url: string | null;
+  notion_tag: string | null;
+  status: string;
+  icon: string;
+  color: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function listProjectsV2(): Promise<ProjectV2[]> {
+  const res = await fetch(`${API_BASE}/api/v2/projects`, { cache: "no-store" });
+  return res.json();
+}
+
+export async function getProjectV2(id: string): Promise<ProjectV2> {
+  const res = await fetch(`${API_BASE}/api/v2/projects?id=${id}`, { cache: "no-store" });
+  if (!res.ok) throw new Error("プロジェクト取得に失敗しました");
+  return res.json();
+}
+
+export async function createProjectV2(project: { name: string; description?: string; git_url?: string; status?: string; icon?: string; color?: string }): Promise<ProjectV2> {
+  const res = await fetch(`${API_BASE}/api/v2/projects`, {
+    method: "POST", headers: headers(true), body: JSON.stringify(project),
+  });
+  if (!res.ok) throw new Error("プロジェクト作成に失敗しました");
+  return res.json();
+}
+
+export async function updateProjectV2(id: string, updates: Partial<ProjectV2>): Promise<ProjectV2> {
+  const res = await fetch(`${API_BASE}/api/v2/projects`, {
+    method: "PUT", headers: headers(true), body: JSON.stringify({ id, ...updates }),
+  });
+  if (!res.ok) throw new Error("プロジェクト更新に失敗しました");
+  return res.json();
+}
+
+export async function deleteProjectV2(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/v2/projects`, {
+    method: "DELETE", headers: headers(true), body: JSON.stringify({ id }),
+  });
+  if (!res.ok) throw new Error("プロジェクト削除に失敗しました");
+}
+
+// === Diagrams ===
+
+export interface DiagramV2 {
+  id: string;
+  project_id: string | null;
+  title: string;
+  mermaid_code: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function listDiagramsV2(project_id?: string): Promise<DiagramV2[]> {
+  const params = project_id ? `?project_id=${project_id}` : "";
+  const res = await fetch(`${API_BASE}/api/v2/diagrams${params}`, { cache: "no-store" });
+  return res.json();
+}
+
+export async function createDiagramV2(diagram: { project_id: string; title: string; mermaid_code?: string }): Promise<DiagramV2> {
+  const res = await fetch(`${API_BASE}/api/v2/diagrams`, {
+    method: "POST", headers: headers(true), body: JSON.stringify(diagram),
+  });
+  if (!res.ok) throw new Error("ダイアグラム作成に失敗しました");
+  return res.json();
+}
+
+export async function updateDiagramV2(id: string, updates: Partial<DiagramV2>): Promise<DiagramV2> {
+  const res = await fetch(`${API_BASE}/api/v2/diagrams`, {
+    method: "PUT", headers: headers(true), body: JSON.stringify({ id, ...updates }),
+  });
+  if (!res.ok) throw new Error("ダイアグラム更新に失敗しました");
+  return res.json();
+}
+
+export async function deleteDiagramV2(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/v2/diagrams`, {
+    method: "DELETE", headers: headers(true), body: JSON.stringify({ id }),
+  });
+  if (!res.ok) throw new Error("ダイアグラム削除に失敗しました");
+}
+
 // === Links ===
 
 export async function getBacklinks(targetType: string, targetId: string): Promise<Link[]> {

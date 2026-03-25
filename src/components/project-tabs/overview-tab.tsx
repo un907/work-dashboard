@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { updateProject } from "@/lib/sheets";
-import type { Project } from "@/lib/sheets";
+import { updateProjectV2 } from "@/lib/api-v2";
+import type { ProjectV2 } from "@/lib/api-v2";
 import { ExternalLink, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -10,24 +10,24 @@ const STATUS_OPTIONS = ["active", "planning", "archived"] as const;
 const STATUS_LABEL: Record<string, string> = { active: "Active", planning: "Planning", archived: "Archived" };
 
 interface Props {
-  project: Project;
-  onUpdate: (p: Project) => void;
+  project: ProjectV2;
+  onUpdate: (p: ProjectV2) => void;
 }
 
 export function OverviewTab({ project, onUpdate }: Props) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(project.name);
   const [desc, setDesc] = useState(project.description || "");
-  const [gitUrl, setGitUrl] = useState(project.gitUrl || "");
-  const [notionTag, setNotionTag] = useState(project.notionTag || "");
+  const [gitUrl, setGitUrl] = useState(project.git_url || "");
+  const [notionTag, setNotionTag] = useState(project.notion_tag || "");
   const [status, setStatus] = useState(project.status);
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const updated = await updateProject(project.id, {
-        name, description: desc, gitUrl, notionTag, status,
+      const updated = await updateProjectV2(project.id, {
+        name, description: desc, git_url: gitUrl, notion_tag: notionTag, status,
       });
       onUpdate(updated);
       setEditing(false);
@@ -63,7 +63,7 @@ export function OverviewTab({ project, onUpdate }: Props) {
         </div>
         <div>
           <label className="text-xs font-medium text-gray-500 mb-1 block">ステータス</label>
-          <select value={status} onChange={(e) => setStatus(e.target.value as Project["status"])}
+          <select value={status} onChange={(e) => setStatus(e.target.value as ProjectV2["status"])}
             className="text-sm border border-gray-200 rounded-lg px-3 py-2">
             {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
           </select>
@@ -88,37 +88,22 @@ export function OverviewTab({ project, onUpdate }: Props) {
 
       <div className="grid grid-cols-2 gap-4">
         <InfoCard label="ステータス" value={STATUS_LABEL[project.status] || project.status} />
-        <InfoCard label="作成日" value={new Date(project.createdAt).toLocaleDateString("ja-JP")} />
-        {project.notionTag && <InfoCard label="Notion タグ" value={project.notionTag} />}
-        <InfoCard label="最終更新" value={new Date(project.updatedAt || project.createdAt).toLocaleDateString("ja-JP")} />
+        <InfoCard label="作成日" value={new Date(project.created_at).toLocaleDateString("ja-JP")} />
+        {project.notion_tag && <InfoCard label="Notion タグ" value={project.notion_tag} />}
+        <InfoCard label="最終更新" value={new Date(project.updated_at || project.created_at).toLocaleDateString("ja-JP")} />
       </div>
 
-      {project.gitUrl && (
+      {project.git_url && (
         <div className="bg-gray-50 rounded-lg p-4">
           <p className="text-xs font-medium text-gray-400 mb-1">GitHub</p>
-          <a href={project.gitUrl} target="_blank" rel="noopener noreferrer"
+          <a href={project.git_url} target="_blank" rel="noopener noreferrer"
             className="text-sm text-blue-600 hover:underline flex items-center gap-1.5">
             <ExternalLink className="w-3.5 h-3.5" />
-            {project.gitUrl.replace("https://github.com/", "")}
+            {project.git_url.replace("https://github.com/", "")}
           </a>
         </div>
       )}
 
-      {project.links && project.links.length > 0 && (
-        <div>
-          <p className="text-xs font-medium text-gray-400 mb-2">リンク</p>
-          <div className="space-y-1.5">
-            {project.links.map((link) => (
-              <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors">
-                <span>{link.icon}</span>
-                <span>{link.title}</span>
-                <ExternalLink className="w-3 h-3 ml-auto text-gray-400" />
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { listTasksV2, createTaskV2, updateTaskV2, deleteTaskV2, type TaskV2 } from "@/lib/api-v2";
-import { getProjects, type Project } from "@/lib/sheets";
+import { listProjectsV2, type ProjectV2 } from "@/lib/api-v2";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,7 +27,7 @@ const DUE_ORDER = ["today", "this_week", "later", "someday"];
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<TaskV2[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<ProjectV2[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "open" | "done">("all");
   const [adding, setAdding] = useState(false);
@@ -41,7 +41,7 @@ export default function TasksPage() {
 
   const load = useCallback(async () => {
     try {
-      const [t, p] = await Promise.all([listTasksV2(), getProjects()]);
+      const [t, p] = await Promise.all([listTasksV2(), listProjectsV2()]);
       setTasks(t);
       setProjects(p);
     } catch {}

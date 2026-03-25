@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getProject } from "@/lib/sheets";
-import type { Project } from "@/lib/sheets";
+import { getProjectV2 } from "@/lib/api-v2";
+import type { ProjectV2 } from "@/lib/api-v2";
 import { ArrowLeft, FolderKanban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OverviewTab } from "@/components/project-tabs/overview-tab";
@@ -20,7 +20,7 @@ export default function ProjectDetailPage() {
   const router = useRouter();
   const id = params.id as string;
 
-  const [project, setProject] = useState<Project | null>(null);
+  const [project, setProject] = useState<ProjectV2 | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("概要");
   const [contentKey, setContentKey] = useState(0);
@@ -30,7 +30,7 @@ export default function ProjectDetailPage() {
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
 
   useEffect(() => {
-    getProject(id)
+    getProjectV2(id)
       .then(setProject)
       .catch(() => setProject(null))
       .finally(() => setLoading(false));
@@ -159,7 +159,7 @@ export default function ProjectDetailPage() {
         {activeTab === "概要" && <OverviewTab project={project} onUpdate={setProject} />}
         {activeTab === "ドキュメント" && <DocumentsTab projectId={project.id} projectName={project.name} />}
         {activeTab === "フロー図" && <DiagramsTab projectId={project.id} />}
-        {activeTab === "Git" && <GitTab gitUrl={project.gitUrl} />}
+        {activeTab === "Git" && <GitTab gitUrl={project.git_url || undefined} />}
         {activeTab === "タスク" && <TasksTab projectId={project.id} projectName={project.name} />}
       </div>
     </div>

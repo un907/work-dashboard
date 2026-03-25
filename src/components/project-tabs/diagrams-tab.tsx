@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { getDiagrams, createDiagram, updateDiagram, deleteDiagram } from "@/lib/sheets";
-import type { Diagram } from "@/lib/sheets";
+import { listDiagramsV2, createDiagramV2, updateDiagramV2, deleteDiagramV2 } from "@/lib/api-v2";
+import type { DiagramV2 } from "@/lib/api-v2";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Trash2, Save } from "lucide-react";
@@ -13,8 +13,8 @@ interface Props {
 }
 
 export function DiagramsTab({ projectId }: Props) {
-  const [diagrams, setDiagrams] = useState<Diagram[]>([]);
-  const [selected, setSelected] = useState<Diagram | null>(null);
+  const [diagrams, setDiagrams] = useState<DiagramV2[]>([]);
+  const [selected, setSelected] = useState<DiagramV2 | null>(null);
   const [loading, setLoading] = useState(true);
   const [code, setCode] = useState("");
   const [saving, setSaving] = useState(false);
@@ -25,7 +25,7 @@ export function DiagramsTab({ projectId }: Props) {
 
   const load = useCallback(async () => {
     try {
-      const data = await getDiagrams(projectId);
+      const data = await listDiagramsV2(projectId);
       setDiagrams(data);
       return data;
     } catch {
@@ -51,9 +51,9 @@ export function DiagramsTab({ projectId }: Props) {
     });
   }, []);
 
-  const selectDiagram = (d: Diagram) => {
+  const selectDiagram = (d: DiagramV2) => {
     setSelected(d);
-    setCode(d.mermaidCode);
+    setCode(d.mermaid_code);
   };
 
   // Render mermaid preview
@@ -78,7 +78,7 @@ export function DiagramsTab({ projectId }: Props) {
     if (!selected) return;
     setSaving(true);
     try {
-      const updated = await updateDiagram(selected.id, { mermaidCode: code });
+      const updated = await updateDiagramV2(selected.id, { mermaid_code: code });
       setSelected(updated);
       await load();
     } catch {
@@ -92,7 +92,7 @@ export function DiagramsTab({ projectId }: Props) {
     if (!newTitle.trim()) return;
     setSaving(true);
     try {
-      const d = await createDiagram({ projectId, title: newTitle.trim() });
+      const d = await createDiagramV2({ project_id: projectId, title: newTitle.trim() });
       setCreating(false);
       setNewTitle("");
       await load();
@@ -107,7 +107,7 @@ export function DiagramsTab({ projectId }: Props) {
   const handleDelete = async (id: string) => {
     if (!confirm("このダイアグラムを削除しますか?")) return;
     try {
-      await deleteDiagram(id);
+      await deleteDiagramV2(id);
       if (selected?.id === id) { setSelected(null); setCode(""); }
       await load();
     } catch {
@@ -168,7 +168,7 @@ export function DiagramsTab({ projectId }: Props) {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-700">{selected.title}</h3>
-              <Button onClick={handleSave} size="sm" className="text-xs gap-1.5" disabled={saving || code === selected.mermaidCode}>
+              <Button onClick={handleSave} size="sm" className="text-xs gap-1.5" disabled={saving || code === selected.mermaid_code}>
                 <Save className="w-3 h-3" /> {saving ? "保存中..." : "保存"}
               </Button>
             </div>

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getProjects, createProject, deleteProject } from "@/lib/sheets";
-import type { Project } from "@/lib/sheets";
+import { listProjectsV2, createProjectV2, deleteProjectV2 } from "@/lib/api-v2";
+import type { ProjectV2 } from "@/lib/api-v2";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Trash2, ExternalLink, FolderKanban, GitBranch, FileText } from "lucide-react";
@@ -16,7 +16,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; dot: string 
 
 export default function ProjectsPage() {
   const router = useRouter();
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<ProjectV2[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
@@ -26,7 +26,7 @@ export default function ProjectsPage() {
 
   const load = async () => {
     try {
-      setProjects(await getProjects());
+      setProjects(await listProjectsV2());
     } catch {
       setProjects([]);
     } finally {
@@ -40,10 +40,10 @@ export default function ProjectsPage() {
     if (!newName.trim()) return;
     setSaving(true);
     try {
-      const p = await createProject({
+      const p = await createProjectV2({
         name: newName.trim(),
         description: newDesc.trim() || undefined,
-        gitUrl: newGitUrl.trim() || undefined,
+        git_url: newGitUrl.trim() || undefined,
         status: "active",
       });
       setCreating(false);
@@ -63,7 +63,7 @@ export default function ProjectsPage() {
     e.stopPropagation();
     if (!confirm("このプロジェクトを削除しますか?")) return;
     try {
-      await deleteProject(id);
+      await deleteProjectV2(id);
       await load();
     } catch {
       alert("削除に失敗しました");
@@ -152,7 +152,7 @@ export default function ProjectsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {projects.map((p) => {
           const st = STATUS_CONFIG[p.status] || STATUS_CONFIG.active;
-          const gitOwnerRepo = p.gitUrl?.replace("https://github.com/", "");
+          const gitOwnerRepo = p.git_url?.replace("https://github.com/", "");
           return (
             <div
               key={p.id}
@@ -206,14 +206,8 @@ export default function ProjectsPage() {
                       <span className="truncate">{gitOwnerRepo}</span>
                     </span>
                   )}
-                  {p.links && p.links.length > 0 && (
-                    <span className="flex items-center gap-1">
-                      <ExternalLink className="w-3 h-3" />
-                      {p.links.length}
-                    </span>
-                  )}
                   <span className="ml-auto shrink-0">
-                    {new Date(p.updatedAt || p.createdAt).toLocaleDateString("ja-JP", { month: "short", day: "numeric" })}
+                    {new Date(p.updated_at || p.created_at).toLocaleDateString("ja-JP", { month: "short", day: "numeric" })}
                   </span>
                 </div>
               </div>
