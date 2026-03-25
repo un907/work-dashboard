@@ -157,7 +157,7 @@ export default function ProjectDetailPage() {
       {/* Tab Content with fade transition */}
       <div key={contentKey} className="min-h-[400px] animate-fade-in-fast">
         {activeTab === "概要" && <OverviewTab project={project} onUpdate={setProject} />}
-        {activeTab === "ドキュメント" && <DocumentsTab projectName={project.name} />}
+        {activeTab === "ドキュメント" && <DocumentsTab projectId={project.id} projectName={project.name} />}
         {activeTab === "フロー図" && <DiagramsTab projectId={project.id} />}
         {activeTab === "Git" && <GitTab gitUrl={project.gitUrl} />}
         {activeTab === "タスク" && <TasksTab projectId={project.id} projectName={project.name} />}
