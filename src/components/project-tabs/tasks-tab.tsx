@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { RefreshButton } from "@/components/ui/refresh-button";
+import { InlineSelect } from "@/components/ui/inline-select";
 import { listTasksV2, createTaskV2, updateTaskV2, deleteTaskV2 } from "@/lib/api-v2";
 import type { TaskV2 } from "@/lib/api-v2";
 
@@ -97,16 +98,16 @@ export function TasksTab({ projectId, projectName }: Props) {
     finally { setSaving(false); }
   };
 
-  const cycle = async (task: TaskV2, field: "status" | "priority" | "due_hint") => {
-    const orders: Record<string, string[]> = { status: STATUS_ORDER, priority: PRIORITY_ORDER, due_hint: DUE_ORDER };
-    const order = orders[field];
-    const current = (task as any)[field] || order[0];
-    const next = order[(order.indexOf(current) + 1) % order.length];
+  const updateField = async (taskId: string, field: string, value: string) => {
     try {
-      await updateTaskV2(task.id, { [field]: next } as any);
+      await updateTaskV2(taskId, { [field]: value } as any);
       await load();
     } catch { alert("更新失敗"); }
   };
+
+  const statusOptions = STATUS_ORDER.map(s => ({ value: s, label: STATUS_LABELS[s], color: s === "open" ? "bg-blue-500" : "bg-green-500" }));
+  const priorityOptions = PRIORITY_ORDER.map(p => ({ value: p, label: PRIORITY_LABELS[p], color: p === "high" ? "bg-red-500" : p === "normal" ? "bg-yellow-500" : "bg-gray-400" }));
+  const dueOptions = DUE_ORDER.map(d => ({ value: d, label: DUE_LABELS[d] }));
 
   const handleDelete = async (task: TaskV2) => {
     if (!confirm(`「${task.title}」を削除しますか?`)) return;
@@ -211,12 +212,12 @@ export function TasksTab({ projectId, projectName }: Props) {
                     <div key={task.id} className="group">
                       <div className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">
                         {/* Status */}
-                        <Badge
-                          className={`text-[10px] cursor-pointer select-none shrink-0 ${STATUS_BADGE[task.status] || ""}`}
-                          onClick={() => cycle(task, "status")}
-                        >
-                          {STATUS_LABELS[task.status] || task.status}
-                        </Badge>
+                        <InlineSelect
+                          value={task.status}
+                          options={statusOptions}
+                          onChange={(v) => updateField(task.id, "status", v)}
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_BADGE[task.status] || ""}`}
+                        />
 
                         {/* Title + expand */}
                         <button
@@ -227,20 +228,20 @@ export function TasksTab({ projectId, projectName }: Props) {
                         </button>
 
                         {/* Priority */}
-                        <span
-                          className={`text-xs font-bold cursor-pointer select-none shrink-0 ${PRIORITY_COLORS[task.priority] || ""}`}
-                          onClick={() => cycle(task, "priority")}
-                        >
-                          {PRIORITY_LABELS[task.priority] || task.priority}
-                        </span>
+                        <InlineSelect
+                          value={task.priority}
+                          options={priorityOptions}
+                          onChange={(v) => updateField(task.id, "priority", v)}
+                          className={`text-xs font-bold shrink-0 ${PRIORITY_COLORS[task.priority] || ""}`}
+                        />
 
                         {/* Due hint */}
-                        <span
-                          className="text-[10px] text-gray-400 cursor-pointer select-none hover:text-blue-600 shrink-0 w-10 text-right"
-                          onClick={() => cycle(task, "due_hint")}
-                        >
-                          {DUE_LABELS[task.due_hint || ""] || ""}
-                        </span>
+                        <InlineSelect
+                          value={task.due_hint || ""}
+                          options={dueOptions}
+                          onChange={(v) => updateField(task.id, "due_hint", v)}
+                          className="text-[10px] text-gray-400 hover:text-blue-600 shrink-0"
+                        />
 
                         {/* Delete */}
                         <button onClick={() => handleDelete(task)}
