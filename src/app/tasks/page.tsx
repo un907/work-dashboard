@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2, ChevronDown, ChevronRight, FolderKanban } from "lucide-react";
 import { RefreshButton } from "@/components/ui/refresh-button";
+import { ProjectProgressBar } from "@/components/project-progress-bar";
 
 const STATUS_BADGE: Record<string, string> = {
   "open": "bg-blue-50 text-blue-700",
@@ -49,8 +50,8 @@ export default function TasksPage() {
   useEffect(() => { load(); }, [load]);
 
   const projectMap = useMemo(() => {
-    const m = new Map<string, string>();
-    projects.forEach(p => m.set(p.id, p.name));
+    const m = new Map<string, { name: string; color: string }>();
+    projects.forEach(p => m.set(p.id, { name: p.name, color: p.color || "#6366f1" }));
     return m;
   }, [projects]);
 
@@ -173,10 +174,13 @@ export default function TasksPage() {
         </Card>
       )}
 
+      {/* Progress overview */}
+      <ProjectProgressBar tasks={tasks} projectMap={projectMap} />
+
       {/* Project groups */}
       <div className="space-y-5">
         {[...grouped.entries()].map(([projId, projTasks]) => {
-          const projName = projId === "_none" ? "未分類" : (projectMap.get(projId) || projId);
+          const projName = projId === "_none" ? "未分類" : (projectMap.get(projId)?.name || projId);
           const collapsed = collapsedProjects.has(projId);
           const openInProj = projTasks.filter(t => t.status === "open").length;
 

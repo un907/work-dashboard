@@ -121,14 +121,31 @@ export function TasksTab({ projectId, projectName }: Props) {
 
   return (
     <div>
+      {/* Progress bar */}
+      {tasks.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs text-gray-500">
+              <span className="font-semibold text-gray-700">{openCount}</span> 進行中
+              <span className="mx-2 text-gray-300">|</span>
+              <span className="font-semibold text-green-600">{doneCount}</span> 完了
+            </span>
+            <span className="text-[10px] font-semibold text-gray-500">
+              {tasks.length > 0 ? Math.round((doneCount / tasks.length) * 100) : 0}%
+            </span>
+          </div>
+          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-500 ease-out bg-gradient-to-r from-blue-500 to-green-500"
+              style={{ width: `${tasks.length > 0 ? (doneCount / tasks.length) * 100 : 0}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">
-            <span className="font-semibold text-gray-700">{openCount}</span> 進行中
-            <span className="mx-2 text-gray-300">|</span>
-            <span className="font-semibold text-green-600">{doneCount}</span> 完了
-          </span>
           <RefreshButton onRefresh={load} />
         </div>
         {!adding && (
