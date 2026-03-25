@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2, ChevronDown, ChevronRight, FolderKanban } from "lucide-react";
+import { RefreshButton } from "@/components/ui/refresh-button";
 
 const STATUS_BADGE: Record<string, string> = {
   "open": "bg-blue-50 text-blue-700",
@@ -114,7 +115,10 @@ export default function TasksPage() {
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">タスク管理</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">タスク管理</h1>
+            <RefreshButton onRefresh={load} />
+          </div>
           <p className="text-sm text-gray-500 mt-1">
             <span className="font-semibold text-gray-700">{openCount}</span> 進行中
             <span className="mx-2 text-gray-300">|</span>

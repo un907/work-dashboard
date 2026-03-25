@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, GitCommit, GitPullRequest, CircleDot } from "lucide-react";
+import { RefreshButton } from "@/components/ui/refresh-button";
 
 interface Props {
   gitUrl?: string;
@@ -64,44 +65,48 @@ export function GitTab({ gitUrl }: Props) {
 
   const parsed = gitUrl ? parseGitUrl(gitUrl) : null;
 
-  useEffect(() => {
+  const loadData = useCallback(async () => {
     if (!parsed) { setLoading(false); return; }
     const { owner, repo } = parsed;
     setLoading(true);
     setError(null);
+    try {
+      await Promise.all([
+        fetch(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=20`)
+          .then(r => r.ok ? r.json() : [])
+          .then((data: any[]) => setCommits(data.map(c => ({
+            sha: c.sha,
+            message: c.commit.message.split("\n")[0],
+            author: c.commit.author?.name || c.author?.login || "unknown",
+            date: c.commit.author?.date || "",
+            url: c.html_url,
+          })))),
+        fetch(`https://api.github.com/repos/${owner}/${repo}/pulls?state=all&per_page=10`)
+          .then(r => r.ok ? r.json() : [])
+          .then((data: any[]) => setPrs(data.map(p => ({
+            number: p.number,
+            title: p.title,
+            state: p.state,
+            author: p.user?.login || "unknown",
+            createdAt: p.created_at,
+            url: p.html_url,
+          })))),
+        fetch(`https://api.github.com/repos/${owner}/${repo}/issues?state=all&per_page=10`)
+          .then(r => r.ok ? r.json() : [])
+          .then((data: any[]) => setIssues(data.filter((i: any) => !i.pull_request).map((i: any) => ({
+            number: i.number,
+            title: i.title,
+            state: i.state,
+            labels: i.labels?.map((l: any) => l.name) || [],
+            createdAt: i.created_at,
+            url: i.html_url,
+          })))),
+      ]);
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  }, [parsed]);
 
-    Promise.all([
-      fetch(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=20`)
-        .then(r => r.ok ? r.json() : [])
-        .then((data: any[]) => setCommits(data.map(c => ({
-          sha: c.sha,
-          message: c.commit.message.split("\n")[0],
-          author: c.commit.author?.name || c.author?.login || "unknown",
-          date: c.commit.author?.date || "",
-          url: c.html_url,
-        })))),
-      fetch(`https://api.github.com/repos/${owner}/${repo}/pulls?state=all&per_page=10`)
-        .then(r => r.ok ? r.json() : [])
-        .then((data: any[]) => setPrs(data.map(p => ({
-          number: p.number,
-          title: p.title,
-          state: p.state,
-          author: p.user?.login || "unknown",
-          createdAt: p.created_at,
-          url: p.html_url,
-        })))),
-      fetch(`https://api.github.com/repos/${owner}/${repo}/issues?state=all&per_page=10`)
-        .then(r => r.ok ? r.json() : [])
-        .then((data: any[]) => setIssues(data.filter((i: any) => !i.pull_request).map((i: any) => ({
-          number: i.number,
-          title: i.title,
-          state: i.state,
-          labels: i.labels?.map((l: any) => l.name) || [],
-          createdAt: i.created_at,
-          url: i.html_url,
-        })))),
-    ]).catch((e) => setError(e.message)).finally(() => setLoading(false));
-  }, [gitUrl]);
+  useEffect(() => { loadData(); }, [loadData]);
 
   if (!gitUrl || !parsed) {
     return (
@@ -135,10 +140,13 @@ export function GitTab({ gitUrl }: Props) {
             </button>
           ))}
         </div>
-        <a href={gitUrl} target="_blank" rel="noopener noreferrer"
-          className="text-xs text-gray-400 hover:text-blue-600 flex items-center gap-1">
-          <ExternalLink className="w-3 h-3" /> GitHub
-        </a>
+        <div className="flex items-center gap-2">
+          <RefreshButton onRefresh={loadData} />
+          <a href={gitUrl} target="_blank" rel="noopener noreferrer"
+            className="text-xs text-gray-400 hover:text-blue-600 flex items-center gap-1">
+            <ExternalLink className="w-3 h-3" /> GitHub
+          </a>
+        </div>
       </div>
 
       {activeTab === "commits" && (

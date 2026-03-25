@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, ChevronDown, ChevronRight, Link2 } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { RefreshButton } from "@/components/ui/refresh-button";
 import { listTasksV2, createTaskV2, updateTaskV2, deleteTaskV2 } from "@/lib/api-v2";
 import type { TaskV2 } from "@/lib/api-v2";
 
@@ -122,12 +123,13 @@ export function TasksTab({ projectId, projectName }: Props) {
     <div>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500">
             <span className="font-semibold text-gray-700">{openCount}</span> 進行中
             <span className="mx-2 text-gray-300">|</span>
             <span className="font-semibold text-green-600">{doneCount}</span> 完了
           </span>
+          <RefreshButton onRefresh={load} />
         </div>
         {!adding && (
           <Button onClick={() => setAdding(true)} size="sm" className="text-xs gap-1">

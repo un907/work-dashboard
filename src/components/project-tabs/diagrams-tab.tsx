@@ -6,6 +6,7 @@ import type { Diagram } from "@/lib/sheets";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Trash2, Save } from "lucide-react";
+import { RefreshButton } from "@/components/ui/refresh-button";
 
 interface Props {
   projectId: string;
@@ -122,6 +123,7 @@ export function DiagramsTab({ projectId }: Props) {
       <div className="w-48 shrink-0">
         <div className="flex items-center justify-between mb-2 px-2">
           <p className="text-xs font-medium text-gray-400">ダイアグラム</p>
+          <RefreshButton onRefresh={load} />
         </div>
         <div className="space-y-0.5">
           {diagrams.map((d) => (

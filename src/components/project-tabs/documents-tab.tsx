@@ -5,7 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, FileText, ArrowUpRight, Link2 } from "lucide-react";
+import { Search, FileText, Link2 } from "lucide-react";
+import { RefreshButton } from "@/components/ui/refresh-button";
 import Markdown from "react-markdown";
 import { listDocsV2, getDocV2, createDocV2, updateDocV2, deleteDocV2, searchDocsV2 } from "@/lib/api-v2";
 import type { DocV2, Backlink } from "@/lib/api-v2";
@@ -141,9 +142,10 @@ export function DocumentsTab({ projectId, projectName }: Props) {
           <p className="text-xs font-medium text-gray-400">
             {searchResults ? "検索結果" : "ドキュメント"}
           </p>
-          <span className="text-[10px] text-gray-400">
-            {(searchResults || docs).length}件
-          </span>
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] text-gray-400">{(searchResults || docs).length}件</span>
+            <RefreshButton onRefresh={load} />
+          </div>
         </div>
 
         <div className="space-y-0.5">
