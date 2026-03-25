@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Search, FileText, Link2 } from "lucide-react";
 import { RefreshButton } from "@/components/ui/refresh-button";
 import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { listDocsV2, getDocV2, createDocV2, updateDocV2, deleteDocV2, searchDocsV2 } from "@/lib/api-v2";
 import type { DocV2, Backlink } from "@/lib/api-v2";
 
@@ -226,6 +227,7 @@ export function DocumentsTab({ projectId, projectName }: Props) {
                   <>
                     <article className="prose prose-sm prose-gray max-w-none">
                       <Markdown
+                        remarkPlugins={[remarkGfm]}
                         components={{
                           h1: ({ children }) => <h1 className="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b border-gray-200">{children}</h1>,
                           h2: ({ children }) => <h2 className="text-lg font-bold text-gray-900 mt-8 mb-3">{children}</h2>,
