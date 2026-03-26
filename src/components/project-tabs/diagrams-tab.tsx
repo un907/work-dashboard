@@ -5,7 +5,7 @@ import { listDiagramsV2, createDiagramV2, updateDiagramV2, deleteDiagramV2 } fro
 import type { DiagramV2 } from "@/lib/api-v2";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, Save } from "lucide-react";
+import { Plus, Trash2, Save, Maximize2, X } from "lucide-react";
 import { RefreshButton } from "@/components/ui/refresh-button";
 
 interface Props {
@@ -21,7 +21,9 @@ export function DiagramsTab({ projectId }: Props) {
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const previewRef = useRef<HTMLDivElement>(null);
+  const expandedPreviewRef = useRef<HTMLDivElement>(null);
   const mermaidRef = useRef<any>(null);
+  const [expanded, setExpanded] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -56,18 +58,19 @@ export function DiagramsTab({ projectId }: Props) {
     setCode(d.mermaid_code);
   };
 
-  // Render mermaid preview
+  // Render mermaid preview (inline + expanded)
   useEffect(() => {
-    if (!code || !previewRef.current || !mermaidRef.current) return;
-    const el = previewRef.current;
+    if (!code || !mermaidRef.current) return;
     const render = async () => {
       try {
-        el.innerHTML = "";
         const id = `mermaid-${Date.now()}`;
         const { svg } = await mermaidRef.current.render(id, code);
-        el.innerHTML = svg;
+        if (previewRef.current) previewRef.current.innerHTML = svg;
+        if (expandedPreviewRef.current) expandedPreviewRef.current.innerHTML = svg;
       } catch (e: any) {
-        el.innerHTML = `<p class="text-xs text-red-500 p-4">${e.message || "レンダリングエラー"}</p>`;
+        const err = `<p class="text-xs text-red-500 p-4">${e.message || "レンダリングエラー"}</p>`;
+        if (previewRef.current) previewRef.current.innerHTML = err;
+        if (expandedPreviewRef.current) expandedPreviewRef.current.innerHTML = err;
       }
     };
     const timer = setTimeout(render, 500);
@@ -173,7 +176,7 @@ export function DiagramsTab({ projectId }: Props) {
               </Button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
+            <div className="grid grid-cols-[2fr_3fr] gap-4 flex-1 min-h-0">
               {/* Editor */}
               <div className="flex flex-col min-h-0">
                 <p className="text-xs text-gray-400 mb-1.5 shrink-0">Mermaid コード</p>
@@ -187,7 +190,16 @@ export function DiagramsTab({ projectId }: Props) {
 
               {/* Preview */}
               <div className="flex flex-col min-h-0">
-                <p className="text-xs text-gray-400 mb-1.5 shrink-0">プレビュー</p>
+                <div className="flex items-center justify-between mb-1.5 shrink-0">
+                  <p className="text-xs text-gray-400">プレビュー</p>
+                  <button
+                    onClick={() => setExpanded(true)}
+                    className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                    title="拡大表示"
+                  >
+                    <Maximize2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
                 <Card className="flex-1 overflow-auto">
                   <CardContent className="p-4 flex items-start justify-center min-h-full">
                     <div ref={previewRef} className="w-full" />
@@ -195,6 +207,26 @@ export function DiagramsTab({ projectId }: Props) {
                 </Card>
               </div>
             </div>
+
+            {/* Expanded overlay */}
+            {expanded && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fade-in-fast" onClick={() => setExpanded(false)}>
+                <div
+                  className="bg-white rounded-2xl shadow-2xl w-[85vw] h-[80vh] flex flex-col animate-scale-in overflow-hidden"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 shrink-0">
+                    <h3 className="text-sm font-semibold text-gray-700">{selected.title}</h3>
+                    <button onClick={() => setExpanded(false)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-auto p-6 flex items-start justify-center">
+                    <div ref={expandedPreviewRef} className="w-full" />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-center py-12 text-gray-400 text-sm">
