@@ -63,8 +63,36 @@ export function DiagramsTab({ projectId }: Props) {
 
   // Apply direction override to mermaid code
   const applyDirection = useCallback((src: string, dir: "TB" | "LR"): string => {
-    // Replace first line's direction: graph/flowchart TD/TB/LR/RL
-    return src.replace(/^(graph|flowchart)\s+(TD|TB|LR|RL|BT)/m, `$1 ${dir}`);
+    if (dir === "LR") {
+      // 横並びグループ: トップレベルをLR、各サブグラフ内部をTBに
+      let result = src.replace(/^(graph|flowchart)\s+(TD|TB|LR|RL|BT)/m, "$1 LR");
+      // サブグラフ内に direction が無ければ追加
+      result = result.replace(/^(\s*subgraph\s+.*)$/gm, (match) => {
+        // 次の行にdirectionがあるかチェック（簡易）
+        return match;
+      });
+      // 既存の direction 行を TB に統一
+      result = result.replace(/^\s*direction\s+(TD|TB|LR|RL|BT)\s*$/gm, "    direction TB");
+      // direction が無いサブグラフに追加
+      const lines = result.split("\n");
+      const processed: string[] = [];
+      for (let i = 0; i < lines.length; i++) {
+        processed.push(lines[i]);
+        if (/^\s*subgraph\s+/.test(lines[i])) {
+          // 次の行が direction でなければ挿入
+          const next = lines[i + 1] || "";
+          if (!/^\s*direction\s+/.test(next)) {
+            const indent = lines[i].match(/^(\s*)/)?.[1] || "";
+            processed.push(indent + "    direction TB");
+          }
+        }
+      }
+      return processed.join("\n");
+    }
+    // 縦: トップレベルをTBに、サブグラフ内のdirectionは除去
+    let result = src.replace(/^(graph|flowchart)\s+(TD|TB|LR|RL|BT)/m, "$1 TB");
+    result = result.replace(/^\s*direction\s+(TD|TB|LR|RL|BT)\s*\n?/gm, "");
+    return result;
   }, []);
 
   // Render mermaid preview
