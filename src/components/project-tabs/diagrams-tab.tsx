@@ -24,6 +24,8 @@ export function DiagramsTab({ projectId }: Props) {
   const expandedPreviewRef = useRef<HTMLDivElement>(null);
   const mermaidRef = useRef<any>(null);
   const [expanded, setExpanded] = useState(false);
+  const [zoom, setZoom] = useState(100);
+  const svgCache = useRef<string>("");
 
   const load = useCallback(async () => {
     try {
@@ -58,24 +60,32 @@ export function DiagramsTab({ projectId }: Props) {
     setCode(d.mermaid_code);
   };
 
-  // Render mermaid preview (inline + expanded)
+  // Render mermaid preview
   useEffect(() => {
     if (!code || !mermaidRef.current) return;
     const render = async () => {
       try {
         const id = `mermaid-${Date.now()}`;
         const { svg } = await mermaidRef.current.render(id, code);
+        svgCache.current = svg;
         if (previewRef.current) previewRef.current.innerHTML = svg;
-        if (expandedPreviewRef.current) expandedPreviewRef.current.innerHTML = svg;
       } catch (e: any) {
         const err = `<p class="text-xs text-red-500 p-4">${e.message || "レンダリングエラー"}</p>`;
+        svgCache.current = err;
         if (previewRef.current) previewRef.current.innerHTML = err;
-        if (expandedPreviewRef.current) expandedPreviewRef.current.innerHTML = err;
       }
     };
     const timer = setTimeout(render, 500);
     return () => clearTimeout(timer);
   }, [code]);
+
+  // 拡大時にcachedSVGを注入
+  useEffect(() => {
+    if (expanded && expandedPreviewRef.current && svgCache.current) {
+      expandedPreviewRef.current.innerHTML = svgCache.current;
+    }
+    if (expanded) setZoom(100);
+  }, [expanded]);
 
   const handleSave = async () => {
     if (!selected) return;
@@ -217,12 +227,23 @@ export function DiagramsTab({ projectId }: Props) {
                 >
                   <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 shrink-0">
                     <h3 className="text-sm font-semibold text-gray-700">{selected.title}</h3>
-                    <button onClick={() => setExpanded(false)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                      <X className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {/* Zoom controls */}
+                      <div className="flex items-center gap-1 bg-gray-100 rounded-lg px-1 py-0.5">
+                        <button onClick={() => setZoom(z => Math.max(25, z - 25))}
+                          className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-700 rounded text-sm font-bold">-</button>
+                        <span className="text-[10px] text-gray-500 w-10 text-center font-medium">{zoom}%</span>
+                        <button onClick={() => setZoom(z => Math.min(200, z + 25))}
+                          className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-700 rounded text-sm font-bold">+</button>
+                      </div>
+                      <button onClick={() => setZoom(100)} className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-1 rounded hover:bg-gray-100">Reset</button>
+                      <button onClick={() => setExpanded(false)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                   <div className="flex-1 overflow-auto p-6 flex items-start justify-center">
-                    <div ref={expandedPreviewRef} className="w-full" />
+                    <div ref={expandedPreviewRef} className="w-full transition-transform duration-200 origin-top" style={{ transform: `scale(${zoom / 100})` }} />
                   </div>
                 </div>
               </div>
