@@ -17,6 +17,7 @@ export function DiagramsTab({ projectId }: Props) {
   const [selected, setSelected] = useState<DiagramV2 | null>(null);
   const [loading, setLoading] = useState(true);
   const [code, setCode] = useState("");
+  const [direction, setDirection] = useState<"TB" | "LR">("LR");
   const [saving, setSaving] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
@@ -60,13 +61,20 @@ export function DiagramsTab({ projectId }: Props) {
     setCode(d.mermaid_code);
   };
 
+  // Apply direction override to mermaid code
+  const applyDirection = useCallback((src: string, dir: "TB" | "LR"): string => {
+    // Replace first line's direction: graph/flowchart TD/TB/LR/RL
+    return src.replace(/^(graph|flowchart)\s+(TD|TB|LR|RL|BT)/m, `$1 ${dir}`);
+  }, []);
+
   // Render mermaid preview
   useEffect(() => {
     if (!code || !mermaidRef.current) return;
     const render = async () => {
       try {
+        const renderCode = applyDirection(code, direction);
         const id = `mermaid-${Date.now()}`;
-        const { svg } = await mermaidRef.current.render(id, code);
+        const { svg } = await mermaidRef.current.render(id, renderCode);
         svgCache.current = svg;
         if (previewRef.current) previewRef.current.innerHTML = svg;
       } catch (e: any) {
@@ -77,7 +85,7 @@ export function DiagramsTab({ projectId }: Props) {
     };
     const timer = setTimeout(render, 500);
     return () => clearTimeout(timer);
-  }, [code]);
+  }, [code, direction, applyDirection]);
 
   // 拡大時にcachedSVGを注入
   useEffect(() => {
@@ -201,7 +209,19 @@ export function DiagramsTab({ projectId }: Props) {
               {/* Preview */}
               <div className="flex flex-col min-h-0">
                 <div className="flex items-center justify-between mb-1.5 shrink-0">
-                  <p className="text-xs text-gray-400">プレビュー</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-gray-400">プレビュー</p>
+                    <div className="flex bg-gray-100 rounded-md p-0.5">
+                      <button onClick={() => setDirection("TB")}
+                        className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${direction === "TB" ? "bg-white text-gray-900 shadow-sm" : "text-gray-400"}`}>
+                        縦
+                      </button>
+                      <button onClick={() => setDirection("LR")}
+                        className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${direction === "LR" ? "bg-white text-gray-900 shadow-sm" : "text-gray-400"}`}>
+                        横
+                      </button>
+                    </div>
+                  </div>
                   <button
                     onClick={() => setExpanded(true)}
                     className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
