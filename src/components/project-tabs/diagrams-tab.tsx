@@ -64,22 +64,16 @@ export function DiagramsTab({ projectId }: Props) {
   // Apply direction override to mermaid code
   const applyDirection = useCallback((src: string, dir: "TB" | "LR"): string => {
     if (dir === "LR") {
-      // 横並びグループ: トップレベルをLR、各サブグラフ内部をTBに
+      // グループ横並び: トップLR + サブグラフ内direction TB
       let result = src.replace(/^(graph|flowchart)\s+(TD|TB|LR|RL|BT)/m, "$1 LR");
-      // サブグラフ内に direction が無ければ追加
-      result = result.replace(/^(\s*subgraph\s+.*)$/gm, (match) => {
-        // 次の行にdirectionがあるかチェック（簡易）
-        return match;
-      });
-      // 既存の direction 行を TB に統一
+      // 既存のdirectionをTBに
       result = result.replace(/^\s*direction\s+(TD|TB|LR|RL|BT)\s*$/gm, "    direction TB");
-      // direction が無いサブグラフに追加
+      // directionがないサブグラフに挿入
       const lines = result.split("\n");
       const processed: string[] = [];
       for (let i = 0; i < lines.length; i++) {
         processed.push(lines[i]);
         if (/^\s*subgraph\s+/.test(lines[i])) {
-          // 次の行が direction でなければ挿入
           const next = lines[i + 1] || "";
           if (!/^\s*direction\s+/.test(next)) {
             const indent = lines[i].match(/^(\s*)/)?.[1] || "";
@@ -87,11 +81,30 @@ export function DiagramsTab({ projectId }: Props) {
           }
         }
       }
-      return processed.join("\n");
+      result = processed.join("\n");
+
+      // サブグラフ間に不可視リンクがなければ追加（横配置を強制）
+      const subgraphIds: string[] = [];
+      for (const line of result.split("\n")) {
+        const m = line.match(/^\s*subgraph\s+(\w+)/);
+        if (m) subgraphIds.push(m[1]);
+      }
+      if (subgraphIds.length > 1) {
+        const invisLinks = subgraphIds.slice(0, -1).map((id, i) =>
+          `  ${id} ~~~ ${subgraphIds[i + 1]}`
+        ).join("\n");
+        // endの最後の行の後に追加
+        const lastEnd = result.lastIndexOf("\n  end");
+        if (lastEnd >= 0) {
+          result = result.substring(0, lastEnd + 6) + "\n" + invisLinks + result.substring(lastEnd + 6);
+        }
+      }
+      return result;
     }
-    // 縦: トップレベルをTBに、サブグラフ内のdirectionは除去
+    // 縦: トップレベルをTBに、サブグラフ内のdirectionは除去、不可視リンク除去
     let result = src.replace(/^(graph|flowchart)\s+(TD|TB|LR|RL|BT)/m, "$1 TB");
     result = result.replace(/^\s*direction\s+(TD|TB|LR|RL|BT)\s*\n?/gm, "");
+    result = result.replace(/^\s+\w+\s+~~~\s+\w+\s*\n?/gm, "");
     return result;
   }, []);
 
