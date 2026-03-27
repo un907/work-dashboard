@@ -61,62 +61,78 @@ export function DiagramsTab({ projectId }: Props) {
     setCode(d.mermaid_code);
   };
 
-  // Apply direction override to mermaid code
-  const applyDirection = useCallback((src: string, dir: "TB" | "LR"): string => {
-    // 既存の自動挿入物を除去
-    let clean = src.replace(/^\s*direction\s+(TD|TB|LR|RL|BT)\s*\n?/gm, "");
-    clean = clean.replace(/^\s+\w+\s+~~~\s+\w+\s*\n?/gm, "");
-    clean = clean.replace(/^\s*subgraph\s+__wrapper__\[" "\]\s*\n?/gm, "");
-    clean = clean.replace(/^\s*end\s*\n\s*end\s*$/m, "  end");
+  // サブグラフをパースして個別に抽出
+  const parseSubgraphs = useCallback((src: string): { title: string; body: string }[] => {
+    const groups: { title: string; body: string }[] = [];
+    const lines = src.split("\n");
+    let current: { title: string; lines: string[] } | null = null;
+    let depth = 0;
 
-    if (dir === "LR") {
-      // グループ横並び:
-      // flowchart TB のまま、全サブグラフをラッパーsubgraph(direction LR)で囲む
-      let result = clean.replace(/^(graph|flowchart)\s+(TD|TB|LR|RL|BT)/m, "$1 TB");
-      const lines = result.split("\n");
-      const header = lines[0]; // flowchart TB
-      const body = lines.slice(1);
-
-      // サブグラフがあるか確認
-      const hasSubgraphs = body.some(l => /^\s*subgraph\s+/.test(l));
-      if (!hasSubgraphs) return result;
-
-      // ラッパーsubgraphで包む
-      const wrapped = [
-        header,
-        "  subgraph __wrapper__[\" \"]",
-        "    direction LR",
-        ...body.map(l => "  " + l),
-        "  end",
-      ].join("\n");
-
-      // ラッパーのスタイルを透明に
-      return wrapped + "\n  style __wrapper__ fill:none,stroke:none";
+    for (const line of lines) {
+      if (/^\s*subgraph\s+/.test(line)) {
+        if (depth === 0) {
+          const titleMatch = line.match(/subgraph\s+\w+\[(.+?)\]/) || line.match(/subgraph\s+(\w+)/);
+          current = { title: titleMatch ? titleMatch[1] : "Group", lines: [] };
+        }
+        depth++;
+        if (depth > 1 && current) current.lines.push(line);
+      } else if (/^\s*end\s*$/.test(line)) {
+        depth--;
+        if (depth === 0 && current) {
+          groups.push({ title: current.title, body: current.lines.join("\n") });
+          current = null;
+        } else if (current) {
+          current.lines.push(line);
+        }
+      } else if (current) {
+        current.lines.push(line);
+      }
     }
-
-    // 縦: そのままTBに
-    return clean.replace(/^(graph|flowchart)\s+(TD|TB|LR|RL|BT)/m, "$1 TB");
+    return groups;
   }, []);
 
   // Render mermaid preview
   useEffect(() => {
     if (!code || !mermaidRef.current) return;
     const render = async () => {
-      try {
-        const renderCode = applyDirection(code, direction);
-        const id = `mermaid-${Date.now()}`;
-        const { svg } = await mermaidRef.current.render(id, renderCode);
-        svgCache.current = svg;
-        if (previewRef.current) previewRef.current.innerHTML = svg;
-      } catch (e: any) {
-        const err = `<p class="text-xs text-red-500 p-4">${e.message || "レンダリングエラー"}</p>`;
-        svgCache.current = err;
-        if (previewRef.current) previewRef.current.innerHTML = err;
+      const subgraphs = parseSubgraphs(code);
+
+      if (direction === "LR" && subgraphs.length > 1) {
+        // 横モード: 各サブグラフを個別にTBでレンダリングしてCSS横並び
+        try {
+          const svgs: string[] = [];
+          for (let i = 0; i < subgraphs.length; i++) {
+            const sg = subgraphs[i];
+            const miniCode = `flowchart TB\n${sg.body}`;
+            const id = `mermaid-sg-${Date.now()}-${i}`;
+            const { svg } = await mermaidRef.current.render(id, miniCode);
+            svgs.push(`<div style="flex:1;min-width:0;text-align:center"><p style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px">${sg.title}</p>${svg}</div>`);
+          }
+          const combined = `<div style="display:flex;gap:16px;align-items:flex-start">${svgs.join("")}</div>`;
+          svgCache.current = combined;
+          if (previewRef.current) previewRef.current.innerHTML = combined;
+        } catch (e: any) {
+          const err = `<p class="text-xs text-red-500 p-4">${e.message || "レンダリングエラー"}</p>`;
+          svgCache.current = err;
+          if (previewRef.current) previewRef.current.innerHTML = err;
+        }
+      } else {
+        // 縦モード or サブグラフなし: 通常レンダリング
+        try {
+          const id = `mermaid-${Date.now()}`;
+          const { svg } = await mermaidRef.current.render(id, code);
+          svgCache.current = svg;
+          if (previewRef.current) previewRef.current.innerHTML = svg;
+        } catch (e: any) {
+          const err = `<p class="text-xs text-red-500 p-4">${e.message || "レンダリングエラー"}</p>`;
+          svgCache.current = err;
+          if (previewRef.current) previewRef.current.innerHTML = err;
+        }
       }
     };
     const timer = setTimeout(render, 500);
     return () => clearTimeout(timer);
-  }, [code, direction, applyDirection]);
+  }, [code, direction, parseSubgraphs]);
 
   // 拡大時にcachedSVGを注入
   useEffect(() => {
