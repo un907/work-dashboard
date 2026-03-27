@@ -13,12 +13,13 @@ import { ProjectProgressBar } from "@/components/project-progress-bar";
 import { InlineSelect } from "@/components/ui/inline-select";
 
 const STATUS_BADGE: Record<string, string> = {
+  "planned": "bg-gray-50 text-gray-600",
   "open": "bg-blue-50 text-blue-700",
   "done": "bg-green-50 text-green-700",
   "archived": "bg-gray-100 text-gray-500",
 };
-const STATUS_LABELS: Record<string, string> = { "open": "進行中", "done": "完了", "archived": "アーカイブ" };
-const STATUS_ORDER = ["open", "done"];
+const STATUS_LABELS: Record<string, string> = { "planned": "予定", "open": "進行中", "done": "完了", "archived": "アーカイブ" };
+const STATUS_ORDER = ["planned", "open", "done"];
 const PRIORITY_COLORS: Record<string, string> = { "high": "text-red-500", "normal": "text-yellow-500", "low": "text-gray-400" };
 const PRIORITY_LABELS: Record<string, string> = { "high": "高", "normal": "中", "low": "低" };
 const PRIORITY_ORDER = ["high", "normal", "low"];
@@ -29,7 +30,7 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<TaskV2[]>([]);
   const [projects, setProjects] = useState<ProjectV2[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "open" | "done">("all");
+  const [filter, setFilter] = useState<"all" | "planned" | "open" | "done">("all");
   const [adding, setAdding] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newProjectId, setNewProjectId] = useState("");
@@ -110,6 +111,7 @@ export default function TasksPage() {
 
   if (loading) return <div className="p-8 text-gray-400 text-sm">読み込み中...</div>;
 
+  const plannedCount = tasks.filter(t => t.status === "planned").length;
   const openCount = tasks.filter(t => t.status === "open").length;
   const doneCount = tasks.filter(t => t.status === "done").length;
 
@@ -122,19 +124,21 @@ export default function TasksPage() {
             <RefreshButton onRefresh={load} />
           </div>
           <p className="text-sm text-gray-500 mt-1">
+            <span className="font-semibold text-gray-500">{plannedCount}</span> 予定
+            <span className="mx-1.5 text-gray-300">|</span>
             <span className="font-semibold text-gray-700">{openCount}</span> 進行中
-            <span className="mx-2 text-gray-300">|</span>
+            <span className="mx-1.5 text-gray-300">|</span>
             <span className="font-semibold text-green-600">{doneCount}</span> 完了
           </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex bg-gray-100 rounded-lg p-0.5">
-            {(["all", "open", "done"] as const).map(f => (
+            {(["all", "planned", "open", "done"] as const).map(f => (
               <button key={f} onClick={() => setFilter(f)}
                 className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                   filter === f ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"
                 }`}>
-                {f === "all" ? "全て" : f === "open" ? "進行中" : "完了"}
+                {f === "all" ? "全て" : f === "planned" ? "予定" : f === "open" ? "進行中" : "完了"}
               </button>
             ))}
           </div>

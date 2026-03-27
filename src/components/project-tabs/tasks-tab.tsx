@@ -12,12 +12,13 @@ import { listTasksV2, createTaskV2, updateTaskV2, deleteTaskV2 } from "@/lib/api
 import type { TaskV2 } from "@/lib/api-v2";
 
 const STATUS_BADGE: Record<string, string> = {
+  "planned": "bg-gray-50 text-gray-600",
   "open": "bg-blue-50 text-blue-700",
   "done": "bg-green-50 text-green-700",
   "archived": "bg-gray-100 text-gray-500",
 };
-const STATUS_LABELS: Record<string, string> = { "open": "進行中", "done": "完了", "archived": "アーカイブ" };
-const STATUS_ORDER = ["open", "done"];
+const STATUS_LABELS: Record<string, string> = { "planned": "予定", "open": "進行中", "done": "完了", "archived": "アーカイブ" };
+const STATUS_ORDER = ["planned", "open", "done"];
 
 const PRIORITY_COLORS: Record<string, string> = { "high": "text-red-500", "normal": "text-yellow-500", "low": "text-gray-400" };
 const PRIORITY_LABELS: Record<string, string> = { "high": "高", "normal": "中", "low": "低" };
@@ -117,6 +118,7 @@ export function TasksTab({ projectId, projectName }: Props) {
 
   if (loading) return <div className="text-gray-400 text-sm py-8">読み込み中...</div>;
 
+  const plannedCount = tasks.filter(t => t.status === "planned").length;
   const openCount = tasks.filter(t => t.status === "open").length;
   const doneCount = tasks.filter(t => t.status === "done").length;
 
@@ -127,8 +129,10 @@ export function TasksTab({ projectId, projectName }: Props) {
         <div className="mb-4">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-xs text-gray-500">
+              <span className="font-semibold text-gray-500">{plannedCount}</span> 予定
+              <span className="mx-1.5 text-gray-300">|</span>
               <span className="font-semibold text-gray-700">{openCount}</span> 進行中
-              <span className="mx-2 text-gray-300">|</span>
+              <span className="mx-1.5 text-gray-300">|</span>
               <span className="font-semibold text-green-600">{doneCount}</span> 完了
             </span>
             <span className="text-[10px] font-semibold text-gray-500">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, GitCommit, GitPullRequest, CircleDot } from "lucide-react";
@@ -62,6 +62,7 @@ export function GitTab({ gitUrl }: Props) {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const loaded = useRef(false);
 
   const parsed = useMemo(() => gitUrl ? parseGitUrl(gitUrl) : null, [gitUrl]);
 
@@ -106,7 +107,11 @@ export function GitTab({ gitUrl }: Props) {
     finally { setLoading(false); }
   }, [parsed]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    if (loaded.current) return;
+    loaded.current = true;
+    loadData();
+  }, [loadData]);
 
   if (!gitUrl || !parsed) {
     return (
