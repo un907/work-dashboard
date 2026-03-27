@@ -63,37 +63,38 @@ export function DiagramsTab({ projectId }: Props) {
 
   // Apply direction override to mermaid code
   const applyDirection = useCallback((src: string, dir: "TB" | "LR"): string => {
-    // 既存のdirectionとinvisible linkを一旦除去
+    // 既存の自動挿入物を除去
     let clean = src.replace(/^\s*direction\s+(TD|TB|LR|RL|BT)\s*\n?/gm, "");
     clean = clean.replace(/^\s+\w+\s+~~~\s+\w+\s*\n?/gm, "");
+    clean = clean.replace(/^\s*subgraph\s+__wrapper__\[" "\]\s*\n?/gm, "");
+    clean = clean.replace(/^\s*end\s*\n\s*end\s*$/m, "  end");
 
     if (dir === "LR") {
-      // グループ横並び戦略:
-      // トップレベルをTB（ノードが縦に流れる）にして
-      // サブグラフ間を不可視リンクで横に並べる
+      // グループ横並び:
+      // flowchart TB のまま、全サブグラフをラッパーsubgraph(direction LR)で囲む
       let result = clean.replace(/^(graph|flowchart)\s+(TD|TB|LR|RL|BT)/m, "$1 TB");
+      const lines = result.split("\n");
+      const header = lines[0]; // flowchart TB
+      const body = lines.slice(1);
 
-      // サブグラフIDを収集
-      const subgraphIds: string[] = [];
-      for (const line of result.split("\n")) {
-        const m = line.match(/^\s*subgraph\s+(\w+)/);
-        if (m) subgraphIds.push(m[1]);
-      }
+      // サブグラフがあるか確認
+      const hasSubgraphs = body.some(l => /^\s*subgraph\s+/.test(l));
+      if (!hasSubgraphs) return result;
 
-      // サブグラフ間に不可視リンクを追加（横配置を強制）
-      if (subgraphIds.length > 1) {
-        const invisLinks = subgraphIds.slice(0, -1).map((id, i) =>
-          `  ${id} ~~~ ${subgraphIds[i + 1]}`
-        ).join("\n");
-        const lastEnd = result.lastIndexOf("\n  end");
-        if (lastEnd >= 0) {
-          result = result.substring(0, lastEnd + 6) + "\n" + invisLinks + result.substring(lastEnd + 6);
-        }
-      }
-      return result;
+      // ラッパーsubgraphで包む
+      const wrapped = [
+        header,
+        "  subgraph __wrapper__[\" \"]",
+        "    direction LR",
+        ...body.map(l => "  " + l),
+        "  end",
+      ].join("\n");
+
+      // ラッパーのスタイルを透明に
+      return wrapped + "\n  style __wrapper__ fill:none,stroke:none";
     }
 
-    // 縦: トップレベルをTBに（サブグラフは縦に積み重なる）
+    // 縦: そのままTBに
     return clean.replace(/^(graph|flowchart)\s+(TD|TB|LR|RL|BT)/m, "$1 TB");
   }, []);
 
