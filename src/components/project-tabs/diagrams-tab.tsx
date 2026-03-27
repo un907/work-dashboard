@@ -63,37 +63,28 @@ export function DiagramsTab({ projectId }: Props) {
 
   // Apply direction override to mermaid code
   const applyDirection = useCallback((src: string, dir: "TB" | "LR"): string => {
-    if (dir === "LR") {
-      // グループ横並び: トップLR + サブグラフ内direction TB
-      let result = src.replace(/^(graph|flowchart)\s+(TD|TB|LR|RL|BT)/m, "$1 LR");
-      // 既存のdirectionをTBに
-      result = result.replace(/^\s*direction\s+(TD|TB|LR|RL|BT)\s*$/gm, "    direction TB");
-      // directionがないサブグラフに挿入
-      const lines = result.split("\n");
-      const processed: string[] = [];
-      for (let i = 0; i < lines.length; i++) {
-        processed.push(lines[i]);
-        if (/^\s*subgraph\s+/.test(lines[i])) {
-          const next = lines[i + 1] || "";
-          if (!/^\s*direction\s+/.test(next)) {
-            const indent = lines[i].match(/^(\s*)/)?.[1] || "";
-            processed.push(indent + "    direction TB");
-          }
-        }
-      }
-      result = processed.join("\n");
+    // 既存のdirectionとinvisible linkを一旦除去
+    let clean = src.replace(/^\s*direction\s+(TD|TB|LR|RL|BT)\s*\n?/gm, "");
+    clean = clean.replace(/^\s+\w+\s+~~~\s+\w+\s*\n?/gm, "");
 
-      // サブグラフ間に不可視リンクがなければ追加（横配置を強制）
+    if (dir === "LR") {
+      // グループ横並び戦略:
+      // トップレベルをTB（ノードが縦に流れる）にして
+      // サブグラフ間を不可視リンクで横に並べる
+      let result = clean.replace(/^(graph|flowchart)\s+(TD|TB|LR|RL|BT)/m, "$1 TB");
+
+      // サブグラフIDを収集
       const subgraphIds: string[] = [];
       for (const line of result.split("\n")) {
         const m = line.match(/^\s*subgraph\s+(\w+)/);
         if (m) subgraphIds.push(m[1]);
       }
+
+      // サブグラフ間に不可視リンクを追加（横配置を強制）
       if (subgraphIds.length > 1) {
         const invisLinks = subgraphIds.slice(0, -1).map((id, i) =>
           `  ${id} ~~~ ${subgraphIds[i + 1]}`
         ).join("\n");
-        // endの最後の行の後に追加
         const lastEnd = result.lastIndexOf("\n  end");
         if (lastEnd >= 0) {
           result = result.substring(0, lastEnd + 6) + "\n" + invisLinks + result.substring(lastEnd + 6);
@@ -101,11 +92,9 @@ export function DiagramsTab({ projectId }: Props) {
       }
       return result;
     }
-    // 縦: トップレベルをTBに、サブグラフ内のdirectionは除去、不可視リンク除去
-    let result = src.replace(/^(graph|flowchart)\s+(TD|TB|LR|RL|BT)/m, "$1 TB");
-    result = result.replace(/^\s*direction\s+(TD|TB|LR|RL|BT)\s*\n?/gm, "");
-    result = result.replace(/^\s+\w+\s+~~~\s+\w+\s*\n?/gm, "");
-    return result;
+
+    // 縦: トップレベルをTBに（サブグラフは縦に積み重なる）
+    return clean.replace(/^(graph|flowchart)\s+(TD|TB|LR|RL|BT)/m, "$1 TB");
   }, []);
 
   // Render mermaid preview
